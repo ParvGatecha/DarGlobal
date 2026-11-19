@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #080a0b;
+  --foreground: #f5f5f3;
+}
+
+body {
+  color: var(--foreground);
+  background-color: #080a0b;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Luxury Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #080a0b;
+}
+::-webkit-scrollbar-thumb {
+  background: #181d21;
+  border-radius: 9999px;
+  border: 1px solid #242b31;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c5a059;
+}
+
+/* Subtle transitions for all interactive elements */
+button, a, input, select, textarea {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Subtle gold glow utility */
+.gold-glow {
+  box-shadow: 0 0 25px -5px rgba(197, 160, 89, 0.2);
+}
+
+.forest-glow {
+  box-shadow: 0 0 30px -5px rgba(14, 39, 30, 0.5);
+}

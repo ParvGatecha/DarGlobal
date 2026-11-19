@@ -1,0 +1,43 @@
+services:
+  # Backend FastAPI Web Service
+  - type: web
+    name: darglobal-intelligence-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: CHROMA_PERSIST_DIRECTORY
+        value: ./data/chroma_db
+      - key: BM25_PERSIST_PATH
+        value: ./data/bm25_index.pkl
+      - key: RAW_DATA_DIRECTORY
+        value: ./data/raw_scraped
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        sync: false
+      - key: CORS_ORIGINS
+        value: "*"
+
+  # Frontend Next.js Web Service
+  - type: web
+    name: darglobal-intelligence-frontend
+    env: node
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: darglobal-intelligence-backend
+          property: url
