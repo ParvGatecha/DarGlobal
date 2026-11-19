@@ -1,6 +1,13 @@
 import { ChatRequest, ChatResponse, Citation, HealthStatus, PropertyItem, ToolExecutionTrace, ActiveFilters } from "./types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+function resolveBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl) return "/api/v1";
+  const clean = envUrl.trim().replace(/\/+$/, "");
+  return clean.endsWith("/api/v1") ? clean : `${clean}/api/v1`;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 export async function fetchHealth(): Promise<HealthStatus> {
   const resp = await fetch(`${BASE_URL}/health`, { cache: "no-store" });

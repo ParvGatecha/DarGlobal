@@ -73,20 +73,25 @@ app = FastAPI(
 )
 
 # Production CORS Configuration for Vercel & Cross-Origin SSE
+configured_origins = [o for o in settings.CORS_ORIGINS if o != "*"]
+if not configured_origins:
+    configured_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
 cors_kwargs = {
-    "allow_origins": settings.CORS_ORIGINS,
+    "allow_origins": configured_origins,
     "allow_credentials": True,
     "allow_methods": ["*"],
     "allow_headers": ["*"],
     "expose_headers": ["*"]
 }
-if settings.CORS_ORIGIN_REGEX and "*" not in settings.CORS_ORIGINS:
+if settings.CORS_ORIGIN_REGEX:
     cors_kwargs["allow_origin_regex"] = settings.CORS_ORIGIN_REGEX
 
 app.add_middleware(CORSMiddleware, **cors_kwargs)
 
-# Mount API Routers
+# Mount API Routers at both /api/v1 and root for maximum URL client compatibility
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_router)
 
 @app.get("/health", tags=["Health"])
 async def root_health():
