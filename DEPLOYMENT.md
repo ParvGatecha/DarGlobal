@@ -147,7 +147,7 @@ If Render defaults to or you select **Docker**:
 
 | Key | Value | Notes |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_API_URL` | `https://<your-render-subdomain>.onrender.com` | Your live Render backend HTTPS URL (no trailing slash) |
+| `API_URL` | `https://<your-render-subdomain>.onrender.com` | Your live Render backend HTTPS URL (e.g. `https://darglobal-gp9o.onrender.com`). `NEXT_PUBLIC_API_URL` is also supported as an alias. |
 
 6. Click **Deploy**.
 7. In ~60 seconds, Vercel will assign your free production domain:  

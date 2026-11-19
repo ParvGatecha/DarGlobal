@@ -31,10 +31,10 @@ export function CitationDrawer({ citation, onClose }: CitationDrawerProps) {
         };
       case "PUBLICLY_VERIFIED_FALLBACK":
         return {
-          label: "PUBLICLY VERIFIED FALLBACK",
+          label: "VERIFIED FALLBACK",
           classes: "bg-forest-900 text-gold-300 border-forest-border",
           icon: ShieldCheck,
-          desc: "Canonical URL discovered live; factual specs verified from official investor disclosures and public registries due to WAF challenge boundaries.",
+          desc: "Canonical URL discovered live; factual specs verified from official investor disclosures and verified registries due to WAF challenge boundaries.",
         };
       case "MANUALLY_CURATED":
         return {

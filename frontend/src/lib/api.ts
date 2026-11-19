@@ -1,7 +1,8 @@
 import { ChatRequest, ChatResponse, Citation, HealthStatus, PropertyItem, ToolExecutionTrace, ActiveFilters } from "./types";
 
 function resolveBaseUrl(): string {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  // Support API_URL (public removed) as well as NEXT_PUBLIC_API_URL
+  const envUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
   if (!envUrl) return "/api/v1";
   const clean = envUrl.trim().replace(/\/+$/, "");
   return clean.endsWith("/api/v1") ? clean : `${clean}/api/v1`;
