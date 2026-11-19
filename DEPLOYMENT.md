@@ -91,19 +91,27 @@ Because [`render.yaml`](file:///c:/PHOTOS/Personal/Projects/DarGlobal/render.yam
 
 ---
 
-### Option B: Manual Web Service Setup
+### Option B: Manual Web Service Setup (Python or Docker)
 If creating the service manually:
 1. In Render Dashboard, click **New +** > **Web Service**.
-2. Select **Build and deploy from a Git repository** and connect your repo.
-3. Configure settings:
-   - **Name**: `darglobal-intelligence-backend`
-   - **Region**: Choose the closest region (e.g., Frankfurt or Oregon).
-   - **Branch**: `master` (or `main`)
-   - **Root Directory**: Leave blank (repository root).
-   - **Runtime**: `Python 3`
-   - **Build Command**: `pip install -r backend/requirements.txt`
-   - **Start Command**: `python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 1`
-   - **Instance Type**: **Free** (0.5 CPU, 512 MB RAM)
+2. Select **Build and deploy from a Git repository** and connect your repo (`https://github.com/ParvGatecha/DarGlobal`).
+3. Choose your runtime:
+
+#### Sub-Option B.1: Python 3 Runtime (Fastest)
+- **Name**: `darglobal-intelligence-backend`
+- **Region**: Frankfurt (or closest)
+- **Branch**: `main`
+- **Root Directory**: Leave blank (repository root)
+- **Runtime**: `Python 3`
+- **Build Command**: `pip install -r backend/requirements.txt`
+- **Start Command**: `python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 1`
+- **Instance Type**: **Free** (0.5 CPU, 512 MB RAM)
+
+#### Sub-Option B.2: Docker Runtime
+If Render defaults to or you select **Docker**:
+- **Dockerfile Path**: `./Dockerfile` (located at repository root)
+- **Docker Context**: `.` (repository root)
+- **Instance Type**: **Free** (0.5 CPU, 512 MB RAM)
 4. Under **Advanced**:
    - **Health Check Path**: `/health`
    - **Auto-Deploy**: `Yes`

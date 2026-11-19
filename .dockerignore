@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+.env.*
+frontend
+node_modules
+data/chroma_db
+data/test_*
+__pycache__
+*/__pycache__
+*/*/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+*.md
+ngrok*
