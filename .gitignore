@@ -1,3 +1,8 @@
+# Executables & Binaries
+*.exe
+*.dll
+*.so
+
 # Python & Virtual Environments
 __pycache__/
 *.py[cod]
@@ -18,6 +23,7 @@ ENV/
 
 # Data Stores & Caches (Keep seed, ignore volatile caches)
 data/chroma_db/
+data/test_*/
 data/raw_scraped/*.cache
 *.pkl
 

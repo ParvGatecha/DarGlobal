@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     BM25_WEIGHT: float = 0.4
 
     # Security & CORS
+    ADMIN_API_KEY: str = Field(default="", validation_alias="ADMIN_API_KEY")
     CORS_ORIGINS: List[str] = ["*"]
 
     # Target Web URLs

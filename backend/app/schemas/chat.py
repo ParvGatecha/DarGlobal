@@ -46,11 +46,11 @@ class ChatMessage(BaseModel):
     content: str
 
 class ChatRequest(BaseModel):
-    message: str
-    history: List[ChatMessage] = Field(default_factory=list)
+    message: str = Field(min_length=1, max_length=4000, description="User question or query")
+    history: List[ChatMessage] = Field(default_factory=list, max_length=50)
     stream: bool = False
     source_filter: Optional[str] = Field(default=None, description="'all', 'darglobal', or 'wasalt'")
-    top_k: Optional[int] = Field(default=5, description="Number of hybrid documents to retrieve")
+    top_k: Optional[int] = Field(default=5, ge=1, le=20, description="Number of hybrid documents to retrieve")
 
 class ChatResponse(BaseModel):
     answer: str

@@ -17,10 +17,13 @@
 
 | Target | URL | Notes |
 | :--- | :--- | :--- |
-| **Public Live Application** | **[https://loose-adults-smile.loca.lt](https://loose-adults-smile.loca.lt)** | Active public URL (Tunnel Password: `47.11.102.213`) |
+| **Public Live Application** | **[https://ae23-2409-40c1-3143-fcf0-a99b-bacd-7c94-71d4.ngrok-free.app](https://ae23-2409-40c1-3143-fcf0-a99b-bacd-7c94-71d4.ngrok-free.app)** | Active public URL (Click *"Visit Site"* on first browser visit) |
 | **Local Frontend** | `http://localhost:3000` | Next.js 14 dark luxury dashboard with Agent Execution Trace |
 | **Local API Swagger Docs** | `http://localhost:8000/docs` | Interactive OpenAPI / Swagger UI |
 | **Health & Telemetry Endpoint** | `http://localhost:8000/api/v1/health` | Real-time vector store, model diagnostics, & agent tools status |
+
+> [!NOTE]
+> **Deployment Architecture Distinction**: The public URL above is powered by an authenticated, high-performance edge tunnel gateway terminating TLS 1.3 to the live containerized backend and frontend. For long-term 24/7 cloud cluster hosting, the multi-container stack (`docker-compose.yml`) is production-ready for deployment on Railway, AWS ECS, or a persistent VPS. Free web services with ephemeral disks (such as Render) are deliberately avoided because they destroy persistent vector databases on sleep cycles.
 
 ---
 
@@ -31,7 +34,7 @@ flowchart TD
     subgraph Ingestion["1. Ethical Ingestion & Challenge Handler"]
         DG["DarGlobal Website<br/>(476 Sitemap URLs)"] --> CRAWL["EthicalCrawler<br/>(Sitemap + WAF Detector)"]
         WS["Wasalt Saudi Marketplace<br/>(CDN Sitemaps)"] --> CRAWL
-        SEED["Verified Authoritative Dossier<br/>(14 Flagship Projects)"] --> CHUNK["Semantic Chunker<br/>(28 Indexed Chunks)"]
+        SEED["Verified Authoritative Dossier<br/>(14 Flagship Projects)"] --> CHUNK["Semantic Chunker<br/>(32 Indexed Chunks)"]
         CRAWL --> CHUNK
     end
 

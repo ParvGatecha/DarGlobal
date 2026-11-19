@@ -84,12 +84,19 @@ class AgentToolRegistry:
                         "provenance_class": item.get("provenance_class", "PUBLICLY_VERIFIED_FALLBACK")
                     })
 
-        # If strict filter didn't match all, supplement from hybrid hits
+        # If strict filter didn't match all, supplement from hybrid hits ONLY if matching filters
         if len(results) < params.max_results:
             for hit in hybrid_hits:
                 meta = hit.get("metadata", {})
                 item_id = meta.get("id") or hit.get("chunk_id", "").split("_")[0]
                 if item_id and item_id not in seen_ids and meta.get("source", "").lower() == "darglobal":
+                    hit_city = meta.get("city", "").lower()
+                    hit_loc = meta.get("location", "").lower()
+                    hit_country = meta.get("country", "").lower()
+                    if city_filter and (city_filter not in hit_city and city_filter not in hit_loc):
+                        continue
+                    if country_filter and (country_filter not in hit_country):
+                        continue
                     seen_ids.add(item_id)
                     results.append({
                         "id": item_id,

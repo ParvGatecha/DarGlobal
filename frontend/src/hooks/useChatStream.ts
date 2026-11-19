@@ -98,8 +98,15 @@ export function useChatStream() {
         setCurrentSessionId(activeId);
       }
 
+      // Collect prior conversation history for contextual reasoning
+      const chatHistory = messages
+        .filter((m) => m.content && m.content.trim() !== "")
+        .slice(-6)
+        .map((m) => ({ role: m.role, content: m.content }));
+
       const requestPayload = {
         message: text,
+        history: chatHistory,
         source_filter: sourceFilter !== "all" ? sourceFilter : undefined,
         top_k: 5,
       };

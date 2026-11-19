@@ -185,9 +185,15 @@ class AgentOrchestrator:
             return f"Verified provenance: {p_class} ({url})"
         return f"Executed successfully with {len(result)} fields returned"
 
-    def plan_tools_from_query(self, query: str, source_filter: Optional[str] = None) -> List[tuple[str, Dict[str, Any]]]:
+    def plan_tools_from_query(
+        self,
+        query: str,
+        source_filter: Optional[str] = None,
+        history: Optional[List[ChatMessage]] = None,
+        **kwargs
+    ) -> List[tuple[str, Dict[str, Any]]]:
         """
-        Intelligent planner that analyzes the query semantics to select relevant tools.
+        Intelligent planner that analyzes the query semantics and conversation context to select relevant tools.
         Used as primary dispatcher and fallback when external model does not support native tool calling.
         Guarantees that every tool call corresponds to genuine code execution.
         """
@@ -216,9 +222,12 @@ class AgentOrchestrator:
             except ValueError:
                 pass
 
-        # 2. Location detection
-        locations = ["riyadh", "jeddah", "al khobar", "khobar", "dubai", "marbella", "muscat", "qatar", "lusail", "al malqa", "al narjis", "al shati", "al hada"]
+        # 2. Location detection (core and international)
+        locations = ["riyadh", "jeddah", "al khobar", "khobar", "dubai", "marbella", "muscat", "qatar", "lusail", "al malqa", "al narjis", "al shati", "al hada", "sedra"]
         detected_loc = next((loc for loc in locations if loc in q_lower), None)
+        if not detected_loc:
+            intl_cities = ["tokyo", "japan", "london", "paris", "new york", "singapore", "cairo"]
+            detected_loc = next((c for c in intl_cities if c in q_lower), None)
 
         # 3. Project name detection
         known_projects = {
@@ -244,6 +253,21 @@ class AgentOrchestrator:
         }
         matched_proj_ids = [pid for k, pid in known_projects.items() if k in q_lower]
         unique_proj_ids = list(dict.fromkeys(matched_proj_ids))
+
+        # Check for Follow-Up context referencing prior turns (e.g. "first property", "that property")
+        if not unique_proj_ids and history:
+            hist_texts = [h.content.lower() for h in history if h.role in ["assistant", "user"]]
+            for text in reversed(hist_texts):
+                found_in_hist = [pid for k, pid in known_projects.items() if k in text]
+                if found_in_hist:
+                    ordered_hist_ids = list(dict.fromkeys(found_in_hist))
+                    if any(w in q_lower for w in ["first", "first one", "[1]"]):
+                        unique_proj_ids = [ordered_hist_ids[0]]
+                    elif any(w in q_lower for w in ["second", "second one", "[2]"]) and len(ordered_hist_ids) > 1:
+                        unique_proj_ids = [ordered_hist_ids[1]]
+                    else:
+                        unique_proj_ids = [ordered_hist_ids[0]]
+                    break
 
         # Check for Provenance / Source inquiry
         if any(w in q_lower for w in ["provenance", "source", "authenticity", "url", "audit", "verified", "scraped", "evidence"]):
@@ -271,7 +295,7 @@ class AgentOrchestrator:
                 "max_budget_sar": budget_sar,
                 "max_results": 5
             }))
-        elif "darglobal" in q_lower or detected_loc in ["dubai", "marbella", "muscat", "qatar", "lusail"]:
+        elif "darglobal" in q_lower or detected_loc in ["dubai", "marbella", "muscat", "qatar", "lusail", "tokyo", "japan", "london", "paris", "new york", "singapore", "cairo"]:
             # Target DarGlobal search
             planned.append(("search_darglobal_projects", {
                 "query": query,
@@ -372,7 +396,10 @@ class AgentOrchestrator:
         seen_calls = set()
 
         # Step 1: Determine initial tool execution plan
-        planned_calls = self.plan_tools_from_query(user_msg, request.source_filter)
+        try:
+            planned_calls = self.plan_tools_from_query(user_msg, source_filter=request.source_filter, history=request.history)
+        except TypeError:
+            planned_calls = self.plan_tools_from_query(user_msg, request.source_filter)
         step = 1
 
         for tool_name, args in planned_calls:
@@ -446,7 +473,10 @@ class AgentOrchestrator:
         traces: List[ToolExecutionTrace] = []
         seen_calls = set()
 
-        planned_calls = self.plan_tools_from_query(user_msg, request.source_filter)
+        try:
+            planned_calls = self.plan_tools_from_query(user_msg, source_filter=request.source_filter, history=request.history)
+        except TypeError:
+            planned_calls = self.plan_tools_from_query(user_msg, request.source_filter)
         step = 1
 
         for tool_name, args in planned_calls:
