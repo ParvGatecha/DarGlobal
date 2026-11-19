@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Query, HTTPException
 from backend.app.schemas.property import PropertyItem
-from backend.app.ingestion.seed_data import get_all_indexed_items
+from backend.app.ingestion.seed_data import get_all_indexed_items, is_allowed_property_result
 
 router = APIRouter()
 
@@ -10,14 +10,17 @@ async def list_properties(
     source: Optional[str] = Query(None, description="Filter by 'DarGlobal' or 'Wasalt'"),
     city: Optional[str] = Query(None, description="Filter by city name (e.g. Dubai, Riyadh, Muscat)"),
     search: Optional[str] = Query(None, description="Search keyword in title, developer, or amenities"),
-    provenance: Optional[str] = Query(None, description="Filter by provenance class (DIRECTLY_SCRAPED, PUBLICLY_VERIFIED_FALLBACK)")
+    provenance: Optional[str] = Query(None, description="Filter by provenance class (DIRECTLY_SCRAPED, PUBLICLY_VERIFIED_FALLBACK)"),
+    include_sitemaps: bool = Query(False, description="Whether to include raw sitemap index documents")
 ) -> List[PropertyItem]:
-    """Lists indexed properties and sitemap records with optional filtering."""
+    """Lists indexed properties with optional filtering. Sitemaps are excluded by default."""
     results = []
     search_lower = search.lower() if search else ""
     all_items = get_all_indexed_items()
 
     for raw in all_items:
+        if not include_sitemaps and not is_allowed_property_result(raw):
+            continue
         item = PropertyItem(**raw)
         if source and source.lower() not in item.source.lower():
             continue

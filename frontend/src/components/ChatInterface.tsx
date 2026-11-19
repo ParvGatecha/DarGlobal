@@ -79,6 +79,19 @@ export function ChatInterface({
                     </div>
                   )}
 
+                  {/* Active Search Filters Transparency Banner */}
+                  {!isUser && msg.active_filters?.filter_summary && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-charcoal-900/90 border border-gold-500/30 text-[11px] text-zinc-300 font-mono shadow-sm">
+                      <span className="text-gold-400 font-semibold flex items-center gap-1 shrink-0">
+                        <Sparkles className="h-3 w-3 text-gold-400" />
+                        Active Filters:
+                      </span>
+                      <span className="text-zinc-200 font-medium">
+                        {msg.active_filters.filter_summary}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Message Bubble */}
                   <div
                     className={`rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed ${

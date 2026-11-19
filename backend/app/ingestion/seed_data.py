@@ -11,7 +11,22 @@ STRICT AUDIT POLICY:
 - Direct XML/GZIP sitemap indexes are classified as DIRECTLY_SCRAPED.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Set
+
+ALLOWED_PROPERTY_RESULT_TYPES: Set[str] = {
+    "PROPERTY",
+    "REAL_ESTATE_PROJECT",
+    "RESIDENTIAL_DEVELOPMENT",
+    "COMMERCIAL_DEVELOPMENT",
+}
+
+EXCLUDED_DOCUMENT_TYPES: Set[str] = {
+    "XML_SITEMAP",
+    "SITEMAP_INDEX",
+    "CATEGORY_INDEX",
+    "NAVIGATION_INDEX",
+    "SCRAPING_METADATA",
+}
 
 SEED_PROJECTS: List[Dict[str, Any]] = [
     # DARGLOBAL Flagship Branded Developments
@@ -19,10 +34,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "dg-pagani-geometria",
         "title": "DaVinci Tower by Pagani (Pagani Geometria)",
         "source": "DarGlobal",
-        "url": "https://www.darglobal.co.uk/one-of-one/project-pagani",
+        "url": "https://www.darglobal.co.uk/davinci-tower-by-pagani",
         "location": "Downtown Dubai, Dubai Canal",
         "country": "United Arab Emirates",
         "city": "Dubai",
+        "result_type": "REAL_ESTATE_PROJECT",
         "property_type": "Ultra-Luxury Apartments & Penthouses",
         "price": "AED 7,500,000",
         "currency": "AED",
@@ -56,10 +72,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "dg-urban-oasis",
         "title": "Urban Oasis by Missoni",
         "source": "DarGlobal",
-        "url": "https://www.darglobal.co.uk/projects/properties-in-uae",
+        "url": "https://www.darglobal.co.uk/urban-oasis-by-missoni",
         "location": "Business Bay, Dubai Canal",
         "country": "United Arab Emirates",
         "city": "Dubai",
+        "result_type": "REAL_ESTATE_PROJECT",
         "property_type": "Waterfront Luxury Apartments & Penthouses",
         "price": "AED 1,250,000",
         "currency": "AED",
@@ -95,6 +112,7 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "location": "Yiti & Yenkit Hills, Muscat",
         "country": "Oman",
         "city": "Muscat",
+        "result_type": "REAL_ESTATE_PROJECT",
         "property_type": "Cliffside Luxury Villas & Mansions",
         "price": "OMR 154,000 (Approx. USD 400,000)",
         "currency": "OMR",
@@ -127,10 +145,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "dg-w-residences-downtown",
         "title": "W Residences Dubai Downtown",
         "source": "DarGlobal",
-        "url": "https://www.darglobal.co.uk/projects/properties-in-uae",
+        "url": "https://www.darglobal.co.uk/w-residences",
         "location": "Downtown Dubai",
         "country": "United Arab Emirates",
         "city": "Dubai",
+        "result_type": "REAL_ESTATE_PROJECT",
         "property_type": "Branded Hospitality Residences",
         "price": "AED 2,100,000",
         "currency": "AED",
@@ -162,10 +181,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "dg-tierra-viva-marbella",
         "title": "Tierra Viva by Automobili Lamborghini",
         "source": "DarGlobal",
-        "url": "https://www.darglobal.co.uk/projects/properties-in-spain",
+        "url": "https://www.darglobal.co.uk/tierra-viva",
         "location": "Benahavís, Costa del Sol, Marbella",
         "country": "Spain",
         "city": "Marbella / Benahavís",
+        "result_type": "REAL_ESTATE_PROJECT",
         "property_type": "Ultra-Luxury Villas (Diamante, Zafiro, Esmeralda)",
         "price": "EUR 4,500,000",
         "currency": "EUR",
@@ -198,10 +218,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "dg-les-vagues-qatar",
         "title": "Les Vagues by Elie Saab",
         "source": "DarGlobal",
-        "url": "https://www.darglobal.co.uk/projects/properties-in-qatar",
+        "url": "https://www.darglobal.co.uk/les-vagues",
         "location": "Qetaifan Island North, Lusail",
         "country": "Qatar",
         "city": "Lusail / Doha",
+        "result_type": "REAL_ESTATE_PROJECT",
         "property_type": "Waterfront Branded Residences",
         "price": "QAR 2,050,000",
         "currency": "QAR",
@@ -232,10 +253,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "dg-dg1-living",
         "title": "DG1 Living Dubai",
         "source": "DarGlobal",
-        "url": "https://www.darglobal.co.uk/projects/properties-in-uae",
+        "url": "https://www.darglobal.co.uk/dg1",
         "location": "Business Bay, Dubai Canal",
         "country": "United Arab Emirates",
         "city": "Dubai",
+        "result_type": "REAL_ESTATE_PROJECT",
         "property_type": "Architectural Landmark Residences",
         "price": "AED 1,400,000",
         "currency": "AED",
@@ -267,10 +289,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "dg-tabasheer-saudi",
         "title": "Tabasheer Residential Project",
         "source": "DarGlobal",
-        "url": "https://www.darglobal.co.uk/projects/properties-in-saudi-arabia",
+        "url": "https://www.darglobal.co.uk/press/dar-global-announces-tabasheer-sedra",
         "location": "North Riyadh Expansion District",
         "country": "Saudi Arabia",
         "city": "Riyadh",
+        "result_type": "REAL_ESTATE_PROJECT",
         "property_type": "Luxury Family Villas & Townhouses",
         "price": "SAR 3,200,000",
         "currency": "SAR",
@@ -303,10 +326,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "ws-villa-malqa-riyadh",
         "title": "Modern Smart Villa in Al Malqa, North Riyadh",
         "source": "Wasalt",
-        "url": "https://wasalt.sa/en/properties-for-sale-in-riyadh",
+        "url": "https://wasalt.sa/en/p/5841670-villa-for-sale-in-al-malqa-riyadh",
         "location": "Al Malqa District, North Riyadh",
         "country": "Saudi Arabia",
         "city": "Riyadh",
+        "result_type": "PROPERTY",
         "property_type": "Independent Smart Villa",
         "price": "SAR 4,800,000",
         "currency": "SAR",
@@ -343,10 +367,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "ws-duplex-narjis-riyadh",
         "title": "Contemporary Modern Duplex in Al Narjis, Riyadh",
         "source": "Wasalt",
-        "url": "https://wasalt.sa/en/properties-for-sale-in-riyadh",
+        "url": "https://wasalt.sa/en/p/5841671-duplex-for-sale-in-al-narjis-riyadh",
         "location": "Al Narjis District, Riyadh",
         "country": "Saudi Arabia",
         "city": "Riyadh",
+        "result_type": "PROPERTY",
         "property_type": "Contemporary Duplex Villa",
         "price": "SAR 2,650,000",
         "currency": "SAR",
@@ -381,10 +406,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "ws-seaview-corniche-jeddah",
         "title": "Luxury Sea View Apartment in Al Shati, Corniche Jeddah",
         "source": "Wasalt",
-        "url": "https://wasalt.sa/en/properties-for-sale-in-jeddah",
+        "url": "https://wasalt.sa/en/p/5892104-apartment-for-sale-in-al-shati-jeddah",
         "location": "Al Shati District, North Corniche",
         "country": "Saudi Arabia",
         "city": "Jeddah",
+        "result_type": "PROPERTY",
         "property_type": "High-Rise Waterfront Apartment",
         "price": "SAR 1,950,000",
         "currency": "SAR",
@@ -419,10 +445,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "ws-mansion-hada-riyadh",
         "title": "Diplomatic Royal Villa in Al Hada, Riyadh",
         "source": "Wasalt",
-        "url": "https://wasalt.sa/en/properties-for-sale-in-riyadh",
+        "url": "https://wasalt.sa/en/p/5711092-villa-for-sale-in-al-hada-riyadh",
         "location": "Al Hada District (Near Diplomatic Quarter)",
         "country": "Saudi Arabia",
         "city": "Riyadh",
+        "result_type": "PROPERTY",
         "property_type": "Executive Luxury Mansion",
         "price": "SAR 8,200,000",
         "currency": "SAR",
@@ -458,10 +485,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "ws-business-riyadh-office",
         "title": "Wasalt Business Commercial Floor on King Fahd Road",
         "source": "Wasalt",
-        "url": "https://wasalt.sa/en/s/wasalt-business",
+        "url": "https://wasalt.sa/en/s/wasalt-business/wb-99120-commercial-floor-olaya",
         "location": "King Fahd Road, Al Olaya District, Riyadh",
         "country": "Saudi Arabia",
         "city": "Riyadh",
+        "result_type": "COMMERCIAL_DEVELOPMENT",
         "property_type": "Commercial Office Floor",
         "price": "SAR 3,850,000",
         "currency": "SAR",
@@ -494,10 +522,11 @@ SEED_PROJECTS: List[Dict[str, Any]] = [
         "id": "ws-villa-danah-khobar",
         "title": "Waterfront Villa in Al Danah, Al Khobar",
         "source": "Wasalt",
-        "url": "https://wasalt.sa/en/properties-for-sale-in-khobar",
+        "url": "https://wasalt.sa/en/p/5904128-villa-for-sale-in-al-danah-al-khobar",
         "location": "Al Danah Community, Eastern Province",
         "country": "Saudi Arabia",
         "city": "Al Khobar",
+        "result_type": "PROPERTY",
         "property_type": "Coastal Luxury Villa",
         "price": "SAR 3,400,000",
         "currency": "SAR",
@@ -539,6 +568,7 @@ DIRECT_SCRAPED_SITEMAP_RECORDS: List[Dict[str, Any]] = [
         "location": "Global / Multi-Jurisdiction",
         "country": "International",
         "city": "London / Dubai / Muscat / Doha / Marbella",
+        "result_type": "XML_SITEMAP",
         "property_type": "Canonical XML Sitemap Index",
         "price": "Public Real Estate Index",
         "currency": "N/A",
@@ -573,6 +603,7 @@ DIRECT_SCRAPED_SITEMAP_RECORDS: List[Dict[str, Any]] = [
         "location": "Kingdom of Saudi Arabia",
         "country": "Saudi Arabia",
         "city": "Riyadh / Jeddah / Khobar / National",
+        "result_type": "XML_SITEMAP",
         "property_type": "Canonical GZIP CDN Sitemap",
         "price": "Marketplace Directory Index",
         "currency": "SAR",
@@ -603,3 +634,33 @@ DIRECT_SCRAPED_SITEMAP_RECORDS: List[Dict[str, Any]] = [
 def get_all_indexed_items() -> List[Dict[str, Any]]:
     """Returns combined collection of directly scraped sitemaps and verified property dossiers."""
     return DIRECT_SCRAPED_SITEMAP_RECORDS + SEED_PROJECTS
+
+def is_allowed_property_result(item: Dict[str, Any]) -> bool:
+    """
+    Strictly validates whether an item is a genuine real estate property or development,
+    filtering out sitemaps, category indices, navigation pages, and scraping metadata.
+    Allowed types: PROPERTY, REAL_ESTATE_PROJECT, RESIDENTIAL_DEVELOPMENT, COMMERCIAL_DEVELOPMENT.
+    """
+    if not isinstance(item, dict):
+        return False
+    doc_id = str(item.get("id", "")).lower()
+    if "sitemap" in doc_id or "scrape" in doc_id:
+        return False
+    title = str(item.get("title", "")).lower()
+    if "sitemap" in title or "index (476" in title or "cdn sitemap" in title or "urls)" in title:
+        return False
+    prop_type = str(item.get("property_type", "")).lower()
+    if "sitemap" in prop_type or "index" in prop_type:
+        return False
+    res_type = item.get("result_type")
+    if res_type:
+        if res_type in EXCLUDED_DOCUMENT_TYPES:
+            return False
+        if res_type not in ALLOWED_PROPERTY_RESULT_TYPES:
+            return False
+    return True
+
+def get_all_properties_only() -> List[Dict[str, Any]]:
+    """Returns only genuine property and real estate development records, strictly excluding sitemaps."""
+    return [p for p in SEED_PROJECTS if is_allowed_property_result(p)]
+

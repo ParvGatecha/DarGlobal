@@ -14,6 +14,11 @@ async def trigger_ingestion(
 ) -> IngestionReport:
     """Triggers the full crawling and hybrid indexing pipeline. Protected by admin credentials."""
     admin_key = settings.ADMIN_API_KEY or os.getenv("ADMIN_API_KEY", "")
+    if settings.ENVIRONMENT.lower() == "production" and not admin_key:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Ingestion triggers are locked in production when ADMIN_API_KEY is not configured."
+        )
     if admin_key and x_admin_key != admin_key:
         raise HTTPException(
             status_code=403,

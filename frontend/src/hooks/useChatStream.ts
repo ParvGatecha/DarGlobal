@@ -107,6 +107,7 @@ export function useChatStream() {
       const requestPayload = {
         message: text,
         history: chatHistory,
+        conversation_id: activeId,
         source_filter: sourceFilter !== "all" ? sourceFilter : undefined,
         top_k: 5,
       };
@@ -166,6 +167,8 @@ export function useChatStream() {
                       citations: meta.citations || [],
                       model_used: meta.model,
                       execution_trace: meta.execution_trace || msg.execution_trace || [],
+                      active_filters: meta.active_filters || null,
+                      intent: meta.intent || null,
                     }
                   : msg
               )

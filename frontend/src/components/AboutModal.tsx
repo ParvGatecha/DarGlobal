@@ -88,9 +88,9 @@ export function AboutModal({ isOpen, onClose, health }: AboutModalProps) {
                   {directCount}
                 </span>
                 <span className="text-[10px] text-zinc-400 uppercase font-mono mt-0.5 block">
-                  Directly Scraped
+                  Direct Sitemap Scrapes
                 </span>
-                <span className="text-[9px] text-zinc-400 block mt-1">Sitemaps & Portals</span>
+                <span className="text-[9px] text-zinc-400 block mt-1">XML & GZIP Indexes</span>
               </div>
 
               <div className="p-3 rounded-xl bg-charcoal-950 border border-charcoal-800 text-center">

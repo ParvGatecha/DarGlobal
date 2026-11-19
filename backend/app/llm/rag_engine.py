@@ -16,7 +16,7 @@ GROUNDING, INTEGRITY & PROVENANCE RULES:
 2. NO FABRICATION: Never invent or assume property prices, unit counts, handover dates, or luxury amenities not explicitly confirmed in the context.
 3. MANDATORY CITATIONS: For every factual claim, property attribute, or metric you provide, you MUST cite the relevant document number using square brackets, e.g., [1] or [1][2].
 4. SOURCE TRANSPARENCY: When citing documents, maintain absolute fidelity to the stated provenance. If documents are marked as PUBLICLY_VERIFIED_FALLBACK (due to target website WAF challenges), acknowledge that the data is verified from official disclosures and sitemaps. Never claim unverified data was directly scraped.
-5. UNAVAILABLE DATA: If the user asks about a property, developer, or detail that is not in the context, explicitly state: "Based on the verified records from DarGlobal and Wasalt currently indexed, this information is not available."
+5. UNAVAILABLE DATA & NEGATIVE QUERY GROUNDING: If the user asks about a location, property, developer, or specification that is not in the context (for example, properties in Tokyo), explicitly state: "I couldn't find verified [Location/Property] properties in the indexed dataset." NEVER claim or imply that a company does not operate in a jurisdiction or city merely because the indexed dataset has no matching records.
 6. TONE: Executive, polished, factual, and informative. Use clean Markdown formatting with clear headings, bullet points, and bold metrics.
 
 RETRIEVED CONTEXT DOCUMENTS:
@@ -79,6 +79,21 @@ class RAGEngine:
         """Non-streaming conversational RAG response."""
         start_time = time.time()
 
+        from backend.app.agent.intent import IntentClassifier, IntentType
+        intent, _ = IntentClassifier.classify(request.message, history=request.history)
+        if intent in [IntentType.GREETING, IntentType.GENERAL_CONVERSATION, IntentType.UNSUPPORTED_QUERY]:
+            answer = IntentClassifier.get_natural_response(intent, request.message)
+            elapsed_ms = (time.time() - start_time) * 1000
+            return ChatResponse(
+                answer=answer,
+                citations=[],
+                model_used=model_selector.active_model,
+                retrieval_count=0,
+                provenance_summary={},
+                execution_time_ms=round(elapsed_ms, 2),
+                intent=intent.value
+            )
+
         # Step 1: Hybrid retrieval (Dense + BM25 with RRF)
         hits = self.retriever.search(
             query=request.message,
@@ -113,6 +128,31 @@ class RAGEngine:
 
     async def stream_query(self, request: ChatRequest) -> AsyncGenerator[Dict[str, Any], None]:
         """Streaming conversational RAG response yielding tokens and citations."""
+        from backend.app.agent.intent import IntentClassifier, IntentType
+        import asyncio
+        intent, _ = IntentClassifier.classify(request.message, history=request.history)
+        if intent in [IntentType.GREETING, IntentType.GENERAL_CONVERSATION, IntentType.UNSUPPORTED_QUERY]:
+            answer = IntentClassifier.get_natural_response(intent, request.message)
+            yield {
+                "type": "metadata",
+                "model": model_selector.active_model,
+                "citations": [],
+                "retrieval_count": 0,
+                "provenance_summary": {}
+            }
+            words = answer.split(" ")
+            for idx, word in enumerate(words):
+                chunk = word if idx == len(words) - 1 else word + " "
+                yield {
+                    "type": "token",
+                    "delta": chunk
+                }
+                await asyncio.sleep(0.015)
+            yield {
+                "type": "done"
+            }
+            return
+
         # Step 1: Hybrid retrieval
         hits = self.retriever.search(
             query=request.message,

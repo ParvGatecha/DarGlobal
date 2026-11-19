@@ -1,7 +1,20 @@
+from enum import Enum
 from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
 ToolStatus = Literal["SUCCESS", "ERROR", "TIMEOUT", "SKIPPED"]
+
+class IntentType(str, Enum):
+    GREETING = "GREETING"
+    GENERAL_CONVERSATION = "GENERAL_CONVERSATION"
+    PROPERTY_SEARCH = "PROPERTY_SEARCH"
+    PROJECT_SEARCH = "PROJECT_SEARCH"
+    PROPERTY_COMPARISON = "PROPERTY_COMPARISON"
+    LOCATION_SEARCH = "LOCATION_SEARCH"
+    PROJECT_DETAILS = "PROJECT_DETAILS"
+    FOLLOW_UP = "FOLLOW_UP"
+    AMBIGUOUS_FOLLOW_UP = "AMBIGUOUS_FOLLOW_UP"
+    UNSUPPORTED_QUERY = "UNSUPPORTED_QUERY"
 
 class ToolExecutionTrace(BaseModel):
     """
@@ -56,3 +69,12 @@ class ComparePropertiesInput(BaseModel):
 
 class GetSourceInformationInput(BaseModel):
     query_or_url: str = Field(description="Property title, document ID, or URL to retrieve verified provenance and extraction audit trail")
+
+class FilterPreviousResultsInput(BaseModel):
+    max_budget: Optional[float] = Field(default=None, description="Maximum budget threshold")
+    min_budget: Optional[float] = Field(default=None, description="Minimum budget threshold")
+    currency: Optional[str] = Field(default=None, description="Currency constraint e.g. AED, SAR, EUR")
+    location: Optional[str] = Field(default=None, description="Inherited location e.g. Dubai, Riyadh")
+    bedrooms: Optional[int] = Field(default=None, description="Bedroom requirement")
+    property_type: Optional[str] = Field(default=None, description="Property type filter")
+    properties_to_filter: Optional[List[Dict[str, Any]]] = Field(default=None, description="Explicit candidate items to filter")

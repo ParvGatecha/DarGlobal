@@ -17,6 +17,7 @@ class PropertyItem(BaseModel):
     country: str
     city: str
     property_type: str
+    result_type: Optional[str] = Field(default="PROPERTY", description="Result classification: PROPERTY, REAL_ESTATE_PROJECT, COMMERCIAL_DEVELOPMENT, XML_SITEMAP")
     price: Optional[str] = None
     currency: Optional[str] = None
     developer_or_broker: Optional[str] = None

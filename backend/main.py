@@ -1,3 +1,9 @@
+import os
+# Optimize memory and thread pool allocation for Render Free Tier (512MB RAM)
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,17 +72,38 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Production CORS Configuration for Vercel & Cross-Origin SSE
+cors_kwargs = {
+    "allow_origins": settings.CORS_ORIGINS,
+    "allow_credentials": True,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+    "expose_headers": ["*"]
+}
+if settings.CORS_ORIGIN_REGEX and "*" not in settings.CORS_ORIGINS:
+    cors_kwargs["allow_origin_regex"] = settings.CORS_ORIGIN_REGEX
+
+app.add_middleware(CORSMiddleware, **cors_kwargs)
 
 # Mount API Routers
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+@app.get("/health", tags=["Health"])
+async def root_health():
+    """Root health check endpoint for Render service monitoring."""
+    vector_store = getattr(app.state, "vector_store", None)
+    bm25_store = getattr(app.state, "bm25_store", None)
+    v_count = vector_store.get_count() if vector_store else 0
+    b_count = bm25_store.get_count() if bm25_store else 0
+    return {
+        "status": "HEALTHY",
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT,
+        "indexed_chunks": v_count,
+        "bm25_ready": b_count > 0,
+        "agentic_ready": getattr(app.state, "agent_orchestrator", None) is not None
+    }
 
 @app.get("/", tags=["Root"])
 async def root():
@@ -85,17 +112,20 @@ async def root():
         "version": settings.VERSION,
         "docs_url": "/docs",
         "api_v1": settings.API_V1_STR,
+        "health_check": "/api/v1/health",
         "agentic_tools": [
             "search_darglobal_projects",
             "search_wasalt_properties",
             "search_by_location",
             "get_project_details",
             "compare_properties",
-            "get_source_information"
+            "get_source_information",
+            "filter_previous_results"
         ],
         "status": "OPERATIONAL"
     }
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", settings.PORT))
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, workers=1)

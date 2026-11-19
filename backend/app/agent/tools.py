@@ -3,7 +3,15 @@ import time
 from typing import List, Dict, Any, Optional
 from backend.app.core.logger import logger
 from backend.app.retrieval.hybrid_search import HybridSearchEngine
-from backend.app.ingestion.seed_data import get_all_indexed_items, SEED_PROJECTS, DIRECT_SCRAPED_SITEMAP_RECORDS
+from backend.app.ingestion.seed_data import (
+    get_all_indexed_items,
+    get_all_properties_only,
+    is_allowed_property_result,
+    ALLOWED_PROPERTY_RESULT_TYPES,
+    EXCLUDED_DOCUMENT_TYPES,
+    SEED_PROJECTS,
+    DIRECT_SCRAPED_SITEMAP_RECORDS,
+)
 from backend.app.schemas.agent import (
     SearchDarGlobalInput,
     SearchWasaltInput,
@@ -11,6 +19,7 @@ from backend.app.schemas.agent import (
     GetProjectDetailsInput,
     ComparePropertiesInput,
     GetSourceInformationInput,
+    FilterPreviousResultsInput,
 )
 
 def _parse_numeric_price(price_str: Optional[str]) -> Optional[float]:
@@ -33,6 +42,7 @@ class AgentToolRegistry:
     def __init__(self, retriever: HybridSearchEngine):
         self.retriever = retriever
         self.all_items = get_all_indexed_items()
+        self.properties_only = get_all_properties_only()
 
     def search_darglobal_projects(self, params: SearchDarGlobalInput) -> Dict[str, Any]:
         """Search indexed DarGlobal project information."""
@@ -52,6 +62,10 @@ class AgentToolRegistry:
         seen_ids = set()
 
         for item in SEED_PROJECTS:
+            # Strictly filter out sitemaps and non-property documents
+            if not is_allowed_property_result(item):
+                continue
+
             if item.get("source", "").lower() != "darglobal":
                 continue
 
@@ -65,7 +79,9 @@ class AgentToolRegistry:
 
             # Check query relevance
             haystack = f"{item['title']} {item['location']} {item['description']} {item.get('brand_partner', '')} {' '.join(item['amenities'])}".lower()
-            if any(term in haystack for term in query.lower().split() if len(term) > 2) or not query.strip():
+            raw_tokens = re.findall(r"\w+", query.lower())
+            content_terms = [t for t in raw_tokens if len(t) > 2 and t not in {"find", "show", "tell", "want", "see", "properties", "property", "projects", "project", "list", "listings", "all", "the", "for", "with"}]
+            if not content_terms or any(term in haystack for term in content_terms) or city_filter or country_filter:
                 if item["id"] not in seen_ids:
                     seen_ids.add(item["id"])
                     results.append({
@@ -88,6 +104,8 @@ class AgentToolRegistry:
         if len(results) < params.max_results:
             for hit in hybrid_hits:
                 meta = hit.get("metadata", {})
+                if not is_allowed_property_result(meta):
+                    continue
                 item_id = meta.get("id") or hit.get("chunk_id", "").split("_")[0]
                 if item_id and item_id not in seen_ids and meta.get("source", "").lower() == "darglobal":
                     hit_city = meta.get("city", "").lower()
@@ -131,6 +149,10 @@ class AgentToolRegistry:
         seen_ids = set()
 
         for item in SEED_PROJECTS:
+            # Strictly filter out sitemaps and non-property documents
+            if not is_allowed_property_result(item):
+                continue
+
             if item.get("source", "").lower() != "wasalt":
                 continue
 
@@ -153,8 +175,9 @@ class AgentToolRegistry:
 
             # Textual relevance
             haystack = f"{item['title']} {item['location']} {item['description']} {item['property_type']} {' '.join(item['amenities'])}".lower()
-            query_terms = [t for t in query.lower().split() if len(t) > 2]
-            if not query_terms or any(term in haystack for term in query_terms):
+            raw_tokens = re.findall(r"\w+", query.lower())
+            content_terms = [t for t in raw_tokens if len(t) > 2 and t not in {"find", "show", "tell", "want", "see", "properties", "property", "listings", "listing", "all", "the", "for", "with"}]
+            if not content_terms or any(term in haystack for term in content_terms) or city_filter:
                 if item["id"] not in seen_ids:
                     seen_ids.add(item["id"])
                     results.append({
@@ -193,7 +216,11 @@ class AgentToolRegistry:
         results = []
         seen_ids = set()
 
-        for item in self.all_items:
+        for item in self.properties_only:
+            # Strictly filter out sitemaps, category indices, and scraping metadata
+            if not is_allowed_property_result(item):
+                continue
+
             # Check source filter
             if source_filter:
                 if source_filter not in item.get("source", "").lower():
@@ -233,7 +260,7 @@ class AgentToolRegistry:
             return {"error": "Either project_id or project_name must be supplied."}
 
         matched = None
-        for item in self.all_items:
+        for item in self.properties_only:
             if p_id and p_id in item.get("id", "").lower():
                 matched = item
                 break
@@ -242,7 +269,7 @@ class AgentToolRegistry:
                 break
 
         if not matched:
-            available_titles = [i["title"] for i in self.all_items if "title" in i]
+            available_titles = [i["title"] for i in self.properties_only if "title" in i]
             return {
                 "error": f"Project not found for query (id={p_id}, name={p_name})",
                 "available_projects_suggestion": available_titles[:6]
@@ -290,7 +317,9 @@ class AgentToolRegistry:
         for target in targets:
             target_clean = target.lower().strip()
             item_match = None
-            for item in self.all_items:
+            for item in self.properties_only:
+                if not is_allowed_property_result(item):
+                    continue
                 if target_clean in item.get("id", "").lower() or target_clean in item.get("title", "").lower():
                     item_match = item
                     break
@@ -355,6 +384,68 @@ class AgentToolRegistry:
             "extraction_timestamp": matched.get("extraction_timestamp"),
             "alternative_source": matched.get("alternative_source"),
             "origin_notes": matched.get("origin_notes")
+        }
+
+    def filter_previous_results(self, params: FilterPreviousResultsInput) -> Dict[str, Any]:
+        """
+        Directly filters previously retrieved property items by budget, currency, or bedrooms
+        without redundant external database re-queries.
+        """
+        candidates = params.properties_to_filter or []
+        if not candidates and params.location:
+            loc_lower = params.location.lower()
+            candidates = [p for p in self.properties_only if loc_lower in p.get("city", "").lower() or loc_lower in p.get("location", "").lower()]
+
+        filtered = []
+        for prop in candidates:
+            if not is_allowed_property_result(prop):
+                continue
+
+            # Budget check
+            if params.max_budget is not None:
+                num_price = _parse_numeric_price(prop.get("price"))
+                if num_price is not None and num_price > params.max_budget:
+                    continue
+
+            if params.min_budget is not None:
+                num_price = _parse_numeric_price(prop.get("price"))
+                if num_price is not None and num_price < params.min_budget:
+                    continue
+
+            # Bedroom check
+            if params.bedrooms is not None:
+                meta = prop.get("metadata", {})
+                unit_types = str(meta.get("unit_types", "")).lower()
+                prop_br = meta.get("bedrooms")
+                desc = prop.get("description", "").lower()
+                target_str = str(params.bedrooms)
+                matches_br = False
+                if prop_br is not None and prop_br == params.bedrooms:
+                    matches_br = True
+                elif target_str in unit_types or f"{target_str}-bedroom" in desc or f"{target_str} bedroom" in desc:
+                    matches_br = True
+                if not matches_br:
+                    continue
+
+            # Property type check
+            if params.property_type:
+                pt_lower = params.property_type.lower()
+                prop_pt = prop.get("property_type", "").lower()
+                if pt_lower not in prop_pt:
+                    continue
+
+            filtered.append(prop)
+
+        return {
+            "filter_applied": "contextual_filter",
+            "location": params.location,
+            "currency": params.currency,
+            "max_budget": params.max_budget,
+            "bedrooms": params.bedrooms,
+            "count": len(filtered),
+            "filtered_count": len(filtered),
+            "properties": filtered,
+            "filtered_properties": filtered
         }
 
 # Tool Definitions formatted for OpenRouter / OpenAI Function Calling API

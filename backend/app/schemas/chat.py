@@ -48,6 +48,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000, description="User question or query")
     history: List[ChatMessage] = Field(default_factory=list, max_length=50)
+    conversation_id: Optional[str] = Field(default=None, description="Unique conversation session ID")
     stream: bool = False
     source_filter: Optional[str] = Field(default=None, description="'all', 'darglobal', or 'wasalt'")
     top_k: Optional[int] = Field(default=5, ge=1, le=20, description="Number of hybrid documents to retrieve")
@@ -66,3 +67,19 @@ class ChatResponse(BaseModel):
         description="Audit trace of tools actually executed by the agent"
     )
     execution_time_ms: float
+    intent: Optional[str] = Field(
+        default=None,
+        description="Classified user conversational intent (e.g. GREETING, PROPERTY_SEARCH)"
+    )
+    conversation_id: Optional[str] = Field(
+        default=None,
+        description="Conversation session ID for stateful tracking"
+    )
+    active_filters: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Active search filters applied in current turn"
+    )
+    conversation_state: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Current structured conversation state"
+    )

@@ -1,43 +1,32 @@
 services:
-  # Backend FastAPI Web Service
   - type: web
     name: darglobal-intelligence-backend
-    env: python
-    region: oregon
+    runtime: python
+    region: frankfurt
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /api/v1/health
+    branch: master
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 1"
+    healthCheckPath: "/api/v1/health"
+    autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.9
+        value: "3.11.9"
+      - key: ENVIRONMENT
+        value: "production"
+      - key: AUTO_SELECT_FREE_MODEL
+        value: "true"
+      - key: CORS_ORIGINS
+        value: "http://localhost:3000"
+      - key: CORS_ORIGIN_REGEX
+        value: "^https:\\/\\/.*\\.vercel\\.app$"
       - key: CHROMA_PERSIST_DIRECTORY
-        value: ./data/chroma_db
-      - key: BM25_PERSIST_PATH
-        value: ./data/bm25_index.pkl
-      - key: RAW_DATA_DIRECTORY
-        value: ./data/raw_scraped
+        value: "./data/chroma_db"
+      - key: BM25_INDEX_PATH
+        value: "./data/bm25_index.pkl"
+      - key: CANONICAL_DATASET_PATH
+        value: "./backend/data/canonical_dataset.json"
       - key: OPENROUTER_API_KEY
         sync: false
-      - key: OPENROUTER_MODEL
-        sync: false
-      - key: CORS_ORIGINS
-        value: "*"
-
-  # Frontend Next.js Web Service
-  - type: web
-    name: darglobal-intelligence-frontend
-    env: node
-    region: oregon
-    plan: free
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    startCommand: npm run start
-    envVars:
-      - key: NODE_VERSION
-        value: 20.18.0
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: darglobal-intelligence-backend
-          property: url
+      - key: ADMIN_API_KEY
+        generateValue: true

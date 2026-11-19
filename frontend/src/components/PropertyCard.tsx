@@ -43,7 +43,7 @@ export function PropertyCard({ property, onAskAbout }: PropertyCardProps) {
             {isDirect ? (
               <>
                 <CheckCircle2 className="h-2.5 w-2.5" />
-                Direct Scrape
+                Direct Sitemap Scrape
               </>
             ) : (
               <>

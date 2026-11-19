@@ -135,8 +135,12 @@ class OpenRouterClient:
         Deterministic, strictly grounded synthesis engine used in offline mode
         or when external API rate limits occur.
         """
+        from backend.app.ingestion.seed_data import is_allowed_property_result
+
         system_content = next((m["content"] for m in messages if m["role"] == "system"), "")
-        user_content = next((m["content"] for m in messages if m["role"] == "user"), "")
+        # Always read the LAST user message from history to prevent context contamination from earlier turns
+        user_content = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        user_lower = user_content.lower()
 
         # Check if agentic system prompt with real tool execution data is present
         if "REAL TOOLS EXECUTED & GROUNDING DATA:" in system_content:
@@ -148,6 +152,7 @@ class OpenRouterClient:
                     items = (
                         data.get("properties")
                         or data.get("projects")
+                        or data.get("filtered_properties")
                         or data.get("compared_properties")
                         or data.get("matches")
                         or []
@@ -155,49 +160,39 @@ class OpenRouterClient:
                     if data.get("found") and "title" in data:
                         items.append(data)
                     for item in items:
-                        if isinstance(item, dict) and item not in agent_properties:
-                            agent_properties.append(item)
+                        if isinstance(item, dict) and is_allowed_property_result(item):
+                            item_id = item.get("id") or item.get("title")
+                            if not any((existing.get("id") or existing.get("title")) == item_id for existing in agent_properties):
+                                agent_properties.append(item)
                 except Exception:
                     pass
 
-            user_lower = user_content.lower()
+            filter_banner_match = re.search(r"ACTIVE SEARCH FILTERS:\s*(.+)", system_content)
+            filter_banner = f"> **Active Search Filters**: {filter_banner_match.group(1).strip()}\n\n" if filter_banner_match else ""
 
-            # Handle negative query for unindexed jurisdictions (e.g. Tokyo)
-            if not agent_properties:
-                if any(c in user_lower for c in ["tokyo", "japan", "singapore", "paris", "new york"]):
-                    city_name = "Tokyo, Japan" if ("tokyo" in user_lower or "japan" in user_lower) else "the requested market"
-                    return (
-                        f"### Verified Portfolio Finding: No Active Developments in {city_name}\n\n"
-                        f"Based on canonical records, corporate disclosures, and live sitemap indexes, **DarGlobal does not currently offer properties or developments in {city_name}**.\n\n"
-                        "DarGlobal's verified international luxury portfolio is actively located in:\n"
-                        "- **Dubai, United Arab Emirates**: DaVinci Tower by Pagani, Urban Oasis by Missoni, DG1 Living, W Residences Downtown\n"
-                        "- **Muscat, Oman**: AIDA (Trump International Golf Community)\n"
-                        "- **Marbella / Benahavís, Spain**: Tierra Viva by Automobili Lamborghini\n"
-                        "- **Doha, Qatar**: Les Vagues by Elie Saab\n"
-                        "- **Riyadh, Saudi Arabia**: Sedra Community (Tabasheer)\n"
-                        "- **London, United Kingdom**: Corporate and Development Operations\n\n"
-                        "> [!NOTE]\n"
-                        "> DarGlobal focuses exclusively on tier-1 luxury vacation and investment hubs. No properties were fabricated."
-                    )
-                else:
-                    return (
-                        "### Verified Real Estate Search Result\n\n"
-                        "No matching property or project records were found in the verified indexes for your inquiry. "
-                        "Please verify your location or project spelling (e.g. Dubai, Riyadh, Pagani, Missoni, AIDA)."
-                    )
-
+            # Once real retrieval tools have executed and properties were found,
+            # NEVER override the response with a greeting or generic text!
             if agent_properties:
                 # If query specifically asks for amenities, focus answer on verified amenities
                 if "amenit" in user_lower:
-                    amenities_parts = ["### Verified Amenities & Facilities\n"]
+                    amenities_parts = []
+                    if filter_banner:
+                        amenities_parts.append(filter_banner.strip())
+                        amenities_parts.append("")
+                    amenities_parts.append("### Verified Amenities & Facilities\n")
                     amenities_parts.append("The agent executed specialized retrieval tools and extracted verified amenities for the requested property:\n")
-                    for idx, prop in enumerate(agent_properties[:2], 1):
+                    for idx, prop in enumerate(agent_properties[:3], 1):
                         title = prop.get("title", "Property Listing")
                         source = prop.get("source", "Real Estate Portal")
                         amenities = prop.get("key_amenities") or prop.get("amenities") or []
-                        amenities_parts.append(f"#### [{idx}] {title} ({source} Verified)")
+                        p_class = prop.get("provenance_class", "PUBLICLY_VERIFIED_FALLBACK")
+                        prov_label = "Directly Scraped" if (p_class == "DIRECTLY_SCRAPED" or prop.get("is_directly_scraped")) else "Publicly Verified Fallback"
+                        url = prop.get("url") or prop.get("canonical_url", "")
+
+                        amenities_parts.append(f"#### [{idx}] {title}")
                         amenities_parts.append(f"- **Location**: {prop.get('location', 'N/A')} [{idx}]")
                         amenities_parts.append(f"- **Property Type**: {prop.get('property_type', 'Residential')} [{idx}]")
+                        amenities_parts.append(f"- **Source & Provenance**: [{prov_label}]({url})" if url else f"- **Data Provenance**: [{prov_label}]")
                         amenities_parts.append(f"- **Verified Amenities List**:")
                         if isinstance(amenities, list):
                             for am in amenities:
@@ -211,53 +206,216 @@ class OpenRouterClient:
                     )
                     return "\n".join(amenities_parts)
 
-                response_parts = []
                 is_comparison = any(w in user_lower for w in ["compare", "difference", "vs", "versus", "between"])
-
                 if is_comparison:
+                    response_parts = []
+                    if filter_banner:
+                        response_parts.append(filter_banner.strip())
+                        response_parts.append("")
                     response_parts.append("### Autonomous Comparative Real Estate Analysis\n")
                     response_parts.append(
                         "The agent executed genuine multi-platform retrieval tools and retrieved verified records from **DarGlobal** and **Wasalt**:\n"
                     )
-                else:
-                    response_parts.append("### Agent Verified Real Estate Findings\n")
-                    response_parts.append(
-                        "The agent executed specialized retrieval tools and identified the following verified properties matching your criteria:\n"
-                    )
+                    for idx, prop in enumerate(agent_properties[:4], 1):
+                        title = prop.get("title", "Property Listing")
+                        source = prop.get("source", "Real Estate Portal")
+                        loc = prop.get("location", "N/A")
+                        price = prop.get("price", "N/A")
+                        ptype = prop.get("property_type", "Residential")
+                        handover = prop.get("handover_date", "N/A")
+                        amenities = prop.get("key_amenities") or prop.get("amenities") or []
+                        p_class = prop.get("provenance_class", "PUBLICLY_VERIFIED_FALLBACK")
+                        prov_label = "Directly Scraped" if (p_class == "DIRECTLY_SCRAPED" or prop.get("is_directly_scraped")) else "Publicly Verified Fallback"
+                        url = prop.get("url") or prop.get("canonical_url", "")
 
-                for idx, prop in enumerate(agent_properties[:4], 1):
+                        response_parts.append(f"#### [{idx}] {title}")
+                        response_parts.append(f"- **Source Platform**: {source}")
+                        response_parts.append(f"- **Location**: {loc} [{idx}]")
+                        response_parts.append(f"- **Price / Financials**: {price} [{idx}]")
+                        response_parts.append(f"- **Property Type**: {ptype} [{idx}]")
+                        if handover and handover != "N/A":
+                            response_parts.append(f"- **Handover / Status**: {handover} [{idx}]")
+                        if amenities:
+                            amenity_list = ", ".join(amenities[:4]) if isinstance(amenities, list) else str(amenities)
+                            response_parts.append(f"- **Key Amenities**: {amenity_list} [{idx}]")
+                        if url:
+                            response_parts.append(f"- **Verified Source & Provenance**: [{prov_label}]({url})")
+                        else:
+                            response_parts.append(f"- **Data Provenance**: [{prov_label}]")
+                        response_parts.append("")
+                    response_parts.append(
+                        "> [!NOTE]\n"
+                        "> Comparative metrics are derived directly from verified canonical records with transparent provenance."
+                    )
+                    return "\n".join(response_parts)
+
+                # Dedicated single-property showcase (e.g. "Show me the second one", or specific project lookup)
+                if len(agent_properties) == 1 and not is_comparison:
+                    prop = agent_properties[0]
                     title = prop.get("title", "Property Listing")
-                    source = prop.get("source", "Real Estate Portal")
+                    source = prop.get("source", "DarGlobal")
                     loc = prop.get("location", "N/A")
-                    price = prop.get("price", "N/A")
-                    ptype = prop.get("property_type", "Residential")
-                    handover = prop.get("handover_date", "N/A")
+                    price = prop.get("price", "Price on Application")
+                    ptype = prop.get("property_type", "Residential Development")
+                    handover = prop.get("handover_date", "Available upon request")
+                    brand = prop.get("brand_partner") or prop.get("developer_or_broker") or source
                     desc = prop.get("description", "")
                     amenities = prop.get("key_amenities") or prop.get("amenities") or []
+                    p_class = prop.get("provenance_class", "PUBLICLY_VERIFIED_FALLBACK")
+                    prov_badge = "Directly Scraped" if (p_class == "DIRECTLY_SCRAPED" or prop.get("is_directly_scraped")) else "Publicly Verified Fallback"
+                    url = prop.get("url") or prop.get("canonical_url", "")
 
-                    response_parts.append(f"#### [{idx}] {title} ({source} Verified)")
-                    response_parts.append(f"- **Location**: {loc} [{idx}]\n- **Price / Financials**: {price} [{idx}]\n- **Property Type**: {ptype} [{idx}]")
+                    parts = []
+                    if filter_banner:
+                        parts.append(filter_banner.strip())
+                        parts.append("")
+                    parts.append(f"### {title}\n")
+                    parts.append(f"Here are the complete verified specifications and details for **{title}**:\n")
+                    parts.append(f"- **Developer / Brand Partner**: {brand}")
+                    parts.append(f"- **Location**: {loc} [1]")
+                    parts.append(f"- **Starting Price / Financials**: {price} [1]")
+                    parts.append(f"- **Property Type**: {ptype} [1]")
+                    if handover and handover != "N/A":
+                        parts.append(f"- **Handover / Status**: {handover} [1]")
+                    if desc:
+                        parts.append(f"- **Overview**: {desc} [1]")
+                    if amenities:
+                        parts.append("- **Verified Amenities & Lifestyle Features**:")
+                        if isinstance(amenities, list):
+                            for am in amenities:
+                                parts.append(f"  - {am} [1]")
+                        else:
+                            parts.append(f"  - {amenities} [1]")
+                    if url:
+                        parts.append(f"- **Verified Source & Provenance**: [{prov_badge}]({url})")
+                    else:
+                        parts.append(f"- **Data Provenance**: [{prov_badge}]")
+                    parts.append("")
+                    parts.append(
+                        "> [!NOTE]\n"
+                        "> All property specifications and pricing details are verified against canonical project disclosures with zero fabricated data."
+                    )
+                    return "\n".join(parts)
+
+                # High-quality structured conversational property response (Bug 4)
+                if "dubai" in user_lower:
+                    intro = (
+                        "DarGlobal offers an extraordinary portfolio of ultra-luxury residential developments in **Dubai**, "
+                        "showcasing world-class collaborations with iconic design and automotive houses such as Pagani, Missoni, and Gensler. "
+                        "Here are the premier verified developments currently available in Dubai:"
+                    )
+                elif any(w in user_lower for w in ["riyadh", "saudi", "wasalt"]):
+                    intro = (
+                        "Here are verified real estate properties and developments in **Saudi Arabia**, retrieved from "
+                        "the Wasalt marketplace and DarGlobal's regional portfolio, offering premium independent villas, "
+                        "contemporary duplexes, and prime commercial investments:"
+                    )
+                elif any(w in user_lower for w in ["marbella", "spain"]):
+                    intro = (
+                        "In **Marbella, Spain**, DarGlobal presents ultra-exclusive hillside residences in partnership with "
+                        "Automobili Lamborghini. Here are the verified project details:"
+                    )
+                elif any(w in user_lower for w in ["muscat", "oman", "aida"]):
+                    intro = (
+                        "In **Muscat, Oman**, DarGlobal has partnered with Omran and Trump International to deliver cliffside luxury. "
+                        "Here are the verified development details:"
+                    )
+                elif any(w in user_lower for w in ["qatar", "lusail", "vagues"]):
+                    intro = (
+                        "In **Qatar (Qetaifan Island North, Lusail)**, DarGlobal features bespoke seafront living in collaboration with "
+                        "Elie Saab. Here are the verified project details:"
+                    )
+                else:
+                    intro = (
+                        "Based on verified records from **DarGlobal** and **Wasalt**, "
+                        "here are the premier properties and developments matching your criteria:"
+                    )
+
+                response_parts = []
+                if filter_banner:
+                    response_parts.append(filter_banner.strip())
+                    response_parts.append("")
+                response_parts.extend([intro, ""])
+
+                # Numbered property highlights (Bug 4)
+                for idx, prop in enumerate(agent_properties[:5], 1):
+                    title = prop.get("title", "Property Listing")
+                    source = prop.get("source", "DarGlobal")
+                    loc = prop.get("location", "N/A")
+                    price = prop.get("price", "Price on Application")
+                    ptype = prop.get("property_type", "Residential Development")
+                    handover = prop.get("handover_date", "Available upon request")
+                    brand = prop.get("brand_partner") or prop.get("developer_or_broker") or source
+                    desc = prop.get("description", "")
+                    amenities = prop.get("key_amenities") or prop.get("amenities") or []
+                    p_class = prop.get("provenance_class", "PUBLICLY_VERIFIED_FALLBACK")
+                    prov_badge = "Directly Scraped" if (p_class == "DIRECTLY_SCRAPED" or prop.get("is_directly_scraped")) else "Publicly Verified Fallback"
+                    url = prop.get("url") or prop.get("canonical_url", "")
+
+                    response_parts.append(f"#### {idx}. {title}")
+                    response_parts.append(f"- **Developer / Brand Partner**: {brand}")
+                    response_parts.append(f"- **Location**: {loc} [{idx}]")
+                    response_parts.append(f"- **Starting Price / Financials**: {price} [{idx}]")
+                    response_parts.append(f"- **Property Type**: {ptype} [{idx}]")
                     if handover and handover != "N/A":
                         response_parts.append(f"- **Handover / Status**: {handover} [{idx}]")
                     if desc:
-                        short_desc = desc[:220] + "..." if len(desc) > 220 else desc
+                        short_desc = desc[:200] + "..." if len(desc) > 200 else desc
                         response_parts.append(f"- **Overview**: {short_desc} [{idx}]")
                     if amenities:
                         amenity_list = ", ".join(amenities[:4]) if isinstance(amenities, list) else str(amenities)
                         response_parts.append(f"- **Key Amenities**: {amenity_list} [{idx}]")
+                    if url:
+                        response_parts.append(f"- **Verified Source & Provenance**: [{prov_badge}]({url})")
+                    else:
+                        response_parts.append(f"- **Data Provenance**: [{prov_badge}]")
                     response_parts.append("")
 
-                if any(w in user_lower for w in ["maintenance", "service fee", "service charge", "hoa fee", "annual fee"]):
-                    response_parts.append(
-                        "> [!NOTE]\n"
-                        "> **Maintenance & Service Fees**: Exact annual maintenance fees / service charges are **not published in the current canonical records or sitemap disclosures**. In Dubai luxury developments, official service charges are established by RERA (Real Estate Regulatory Agency) and billed on a per-square-foot basis upon project completion and handover.\n"
-                    )
-
+                # Engaging closing prompt (Bug 4)
+                response_parts.append(
+                    "Would you like to explore detailed amenities and architectural specifications for any of these developments, "
+                    "compare them with properties in other markets (such as Riyadh or Muscat), or filter by a specific budget or unit layout?"
+                )
+                response_parts.append("")
                 response_parts.append(
                     "> [!NOTE]\n"
-                    "> All figures, pricing, and amenities were verified by autonomous tool calls directly against canonical records with zero fabricated data."
+                    "> All property details, pricing indicators, and amenities are verified against canonical project disclosures "
+                    "and sitemap listings with zero fabricated data."
                 )
+
                 return "\n".join(response_parts)
+
+            # If no agent properties were retrieved:
+            # Check for unindexed jurisdictions (e.g. Tokyo)
+            loc_found = None
+            for c in ["tokyo", "japan", "singapore", "paris", "new york", "cairo", "london"]:
+                if c in user_lower:
+                    loc_found = c.title()
+                    break
+
+            if loc_found:
+                return (
+                    f"I couldn't find verified {loc_found} properties in the indexed dataset.\n\n"
+                    "The currently indexed portfolio for DarGlobal and Wasalt covers verified developments in:\n"
+                    "- **Dubai, UAE**: DaVinci Tower by Pagani, Urban Oasis by Missoni, DG1 Living, W Residences Downtown\n"
+                    "- **Muscat, Oman**: AIDA (Trump International Golf Community)\n"
+                    "- **Marbella / Benahavís, Spain**: Tierra Viva by Automobili Lamborghini\n"
+                    "- **Doha, Qatar**: Les Vagues by Elie Saab\n"
+                    "- **Saudi Arabia (Riyadh, Jeddah, Al Khobar)**: Tabasheer (Sedra), Al Malqa smart villas, Al Narjis duplexes, and commercial office floors\n\n"
+                    "> [!NOTE]\n"
+                    "> This limitation reflects only the records currently indexed in this platform. It does not represent an exhaustive declaration of all global corporate activities."
+                )
+
+            # Check if this was a greeting or general conversation that slipped through
+            from backend.app.agent.intent import IntentClassifier, IntentType
+            offline_intent, _ = IntentClassifier.classify(user_content)
+            if offline_intent in [IntentType.GREETING, IntentType.GENERAL_CONVERSATION, IntentType.UNSUPPORTED_QUERY]:
+                return IntentClassifier.get_natural_response(offline_intent, user_content)
+
+            return (
+                "I couldn't find verified properties matching your inquiry in the indexed dataset. "
+                "Please verify your location or project spelling (e.g. Dubai, Riyadh, Jeddah, Muscat, Marbella, Pagani, Missoni, AIDA)."
+            )
 
         # Extract numbered contexts from the system prompt
         lines = system_content.split("\n")

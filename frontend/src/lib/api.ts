@@ -1,4 +1,4 @@
-import { ChatRequest, ChatResponse, Citation, HealthStatus, PropertyItem, ToolExecutionTrace } from "./types";
+import { ChatRequest, ChatResponse, Citation, HealthStatus, PropertyItem, ToolExecutionTrace, ActiveFilters } from "./types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
@@ -44,7 +44,15 @@ export async function streamChatMessage(
   req: ChatRequest,
   handlers: {
     onToolExecution?: (toolTrace: ToolExecutionTrace) => void;
-    onMetadata?: (data: { model: string; citations: Citation[]; retrieval_count: number; execution_trace?: ToolExecutionTrace[] }) => void;
+    onMetadata?: (data: {
+      model: string;
+      citations: Citation[];
+      retrieval_count: number;
+      execution_trace?: ToolExecutionTrace[];
+      active_filters?: ActiveFilters | null;
+      intent?: string | null;
+      conversation_id?: string | null;
+    }) => void;
     onToken?: (delta: string) => void;
     onDone?: () => void;
     onError?: (err: unknown) => void;

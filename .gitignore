@@ -2,30 +2,37 @@
 *.exe
 *.dll
 *.so
+ngrok
+ngrok.exe
 
 # Python & Virtual Environments
 __pycache__/
+*/__pycache__/
+*/*/__pycache__/
 *.py[cod]
 *$py.class
-*.so
 .Python
 env/
 venv/
 .venv/
 ENV/
 
-# Environment Variables & Secrets (CRITICAL)
+# Environment Variables & Secrets (CRITICAL SECURITY)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
 *.pem
 *.key
 
-# Data Stores & Caches (Keep seed, ignore volatile caches)
+# Data Stores & Caches (Ephemeral in Render Free - Canonical is in backend/data/canonical_dataset.json)
 data/chroma_db/
 data/test_*/
 data/raw_scraped/*.cache
 *.pkl
+backend/data/test_*/
 
 # Node.js & Next.js
 node_modules/
@@ -35,6 +42,7 @@ frontend/out/
 .next/
 dist/
 build/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

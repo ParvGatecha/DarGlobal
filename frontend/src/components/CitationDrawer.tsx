@@ -24,17 +24,17 @@ export function CitationDrawer({ citation, onClose }: CitationDrawerProps) {
     switch (pClass) {
       case "DIRECTLY_SCRAPED":
         return {
-          label: "DIRECTLY SCRAPED",
+          label: "DIRECTLY SCRAPED (SITEMAP)",
           classes: "bg-emerald-950/80 text-emerald-300 border-emerald-800/80",
           icon: CheckCircle2,
-          desc: "Obtained directly from live target website sitemap without access boundaries.",
+          desc: "Obtained directly from live target website XML/GZIP sitemap index without access boundaries.",
         };
       case "PUBLICLY_VERIFIED_FALLBACK":
         return {
           label: "PUBLICLY VERIFIED FALLBACK",
           classes: "bg-forest-900 text-gold-300 border-forest-border",
           icon: ShieldCheck,
-          desc: "Canonical URL discovered live; factual specs verified from official investor disclosures due to WAF challenges.",
+          desc: "Canonical URL discovered live; factual specs verified from official investor disclosures and public registries due to WAF challenge boundaries.",
         };
       case "MANUALLY_CURATED":
         return {
@@ -107,7 +107,7 @@ export function CitationDrawer({ citation, onClose }: CitationDrawerProps) {
                 {citation.source}
               </span>
               <span className="text-[11px] text-zinc-400 font-mono">
-                Scraped Direct: {isDirect ? "Yes (Live HTTP)" : "No (WAF Fallback)"}
+                Scraped Direct: {isDirect ? "Yes (Live Sitemap HTTP)" : "No (WAF Fallback Dossier)"}
               </span>
             </div>
             <h3 className="font-serif font-bold text-base text-zinc-100">{citation.title}</h3>

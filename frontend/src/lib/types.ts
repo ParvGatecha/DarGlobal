@@ -30,6 +30,16 @@ export interface Citation {
   metadata?: Record<string, unknown>;
 }
 
+export interface ActiveFilters {
+  location?: string | null;
+  currency?: string | null;
+  budget_max?: number | null;
+  property_type?: string | null;
+  bedrooms?: number | null;
+  data_sources?: string[];
+  filter_summary?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
@@ -38,6 +48,8 @@ export interface ChatMessage {
   execution_trace?: ToolExecutionTrace[];
   model_used?: string;
   timestamp: string;
+  active_filters?: ActiveFilters | null;
+  intent?: string | null;
 }
 
 export interface ChatSession {
@@ -51,6 +63,7 @@ export interface ChatSession {
 export interface ChatRequest {
   message: string;
   history?: Array<{ role: string; content: string }>;
+  conversation_id?: string | null;
   stream?: boolean;
   source_filter?: string | null;
   top_k?: number;
@@ -64,6 +77,9 @@ export interface ChatResponse {
   retrieval_count: number;
   provenance_summary?: Record<string, number>;
   execution_time_ms: number;
+  intent?: string;
+  conversation_id?: string;
+  active_filters?: ActiveFilters | null;
 }
 
 export interface PropertyItem {
