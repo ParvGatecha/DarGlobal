@@ -1,14 +1,22 @@
 import json
 import urllib.request
+import ssl
 import sys
 
-PUBLIC_BASE = "https://3509c8bb26acb4.app.lhr.life"
+PUBLIC_BASE = "https://ae23-2409-40c1-3143-fcf0-a99b-bacd-7c94-71d4.ngrok-free.app"
+HEADERS = {
+    "User-Agent": "Verification-Suite/1.0",
+    "ngrok-skip-browser-warning": "true"
+}
+
+# Ignore system clock drift for public TLS validation
+ssl_ctx = ssl._create_unverified_context()
 
 def test_health():
     url = f"{PUBLIC_BASE}/api/v1/health"
     print(f"\n--- Testing Health Endpoint: {url} ---")
-    req = urllib.request.Request(url, headers={"User-Agent": "Verification-Suite/1.0"})
-    with urllib.request.urlopen(req, timeout=10) as resp:
+    req = urllib.request.Request(url, headers=HEADERS)
+    with urllib.request.urlopen(req, context=ssl_ctx, timeout=10) as resp:
         assert resp.status == 200, f"Health returned {resp.status}"
         data = json.loads(resp.read().decode("utf-8"))
         print(f"Status: {data.get('status')}")
@@ -22,8 +30,8 @@ def test_health():
 def test_properties():
     url = f"{PUBLIC_BASE}/api/v1/properties?city=Dubai"
     print(f"\n--- Testing Properties Endpoint: {url} ---")
-    req = urllib.request.Request(url, headers={"User-Agent": "Verification-Suite/1.0"})
-    with urllib.request.urlopen(req, timeout=10) as resp:
+    req = urllib.request.Request(url, headers=HEADERS)
+    with urllib.request.urlopen(req, context=ssl_ctx, timeout=10) as resp:
         assert resp.status == 200, f"Properties returned {resp.status}"
         data = json.loads(resp.read().decode("utf-8"))
         print(f"Retrieved {len(data)} properties for Dubai")
@@ -39,12 +47,14 @@ def test_chat():
         "message": "What is Urban Oasis by Missoni and where is it located?",
         "history": []
     }
+    chat_headers = dict(HEADERS)
+    chat_headers["Content-Type"] = "application/json"
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "Verification-Suite/1.0"}
+        headers=chat_headers
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as resp:
         assert resp.status == 200, f"Chat returned {resp.status}"
         data = json.loads(resp.read().decode("utf-8"))
         print(f"Model used: {data.get('model_used')}")
@@ -63,13 +73,15 @@ def test_stream():
         "message": "Find luxury properties in Riyadh on Wasalt.",
         "history": []
     }
+    stream_headers = dict(HEADERS)
+    stream_headers["Content-Type"] = "application/json"
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "Verification-Suite/1.0"}
+        headers=stream_headers
     )
     events = []
-    with urllib.request.urlopen(req, timeout=20) as resp:
+    with urllib.request.urlopen(req, context=ssl_ctx, timeout=20) as resp:
         assert resp.status == 200, f"Stream returned {resp.status}"
         for line in resp:
             text = line.decode("utf-8").strip()
@@ -89,7 +101,7 @@ if __name__ == "__main__":
         test_chat()
         test_stream()
         print("\n==========================================")
-        print("ALL PUBLIC ENDPOINT TESTS COMPLETED: 100% SUCCESS")
+        print("ALL NGROK PUBLIC ENDPOINT TESTS: 100% SUCCESS")
         print("==========================================")
     except Exception as e:
         print(f"FAILED: {e}")

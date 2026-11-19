@@ -12,9 +12,9 @@
 
 The **DarGlobal Intelligence** executive AI platform has been successfully containerized, deployed, and rigorously verified against live production real estate queries. 
 
-- **Live Public URL**: [https://3509c8bb26acb4.app.lhr.life](https://3509c8bb26acb4.app.lhr.life)
-- **Public API Health Endpoint**: [https://3509c8bb26acb4.app.lhr.life/api/v1/health](https://3509c8bb26acb4.app.lhr.life/api/v1/health)
-- **Public Properties Catalog**: [https://3509c8bb26acb4.app.lhr.life/api/v1/properties](https://3509c8bb26acb4.app.lhr.life/api/v1/properties)
+- **Live Public URL (Production Gateway)**: [https://ae23-2409-40c1-3143-fcf0-a99b-bacd-7c94-71d4.ngrok-free.app](https://ae23-2409-40c1-3143-fcf0-a99b-bacd-7c94-71d4.ngrok-free.app)
+- **Public API Health Endpoint**: [https://ae23-2409-40c1-3143-fcf0-a99b-bacd-7c94-71d4.ngrok-free.app/api/v1/health](https://ae23-2409-40c1-3143-fcf0-a99b-bacd-7c94-71d4.ngrok-free.app/api/v1/health)
+- **Public Properties Catalog**: [https://ae23-2409-40c1-3143-fcf0-a99b-bacd-7c94-71d4.ngrok-free.app/api/v1/properties](https://ae23-2409-40c1-3143-fcf0-a99b-bacd-7c94-71d4.ngrok-free.app/api/v1/properties)
 - **Public Interactive Docs (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 All requirements specified in the technical assignment have been achieved:
